@@ -1,32 +1,33 @@
 #!/bin/bash
 
-
+# בדיקה אם KEY_PATH מוגדר
 if [ -z "$KEY_PATH" ]; then
   echo "KEY_PATH env var is expected"
   exit 5
 fi
 
-if [ $# -eq "1"]; then
-  ssh -i "KEY_PATH" ubuntu"$1"
-  exit 1
-  fi
-
-if [ $# -lt "1" ]; then
+# בדיקה אם ניתנו הפרמטרים הנדרשים
+if [ -z "$1" ]; then
   echo "Please provide bastion IP address"
   exit 5
 fi
 
-PUBLIC_INSTANCE_IP=$1
-PRIVATE_INSTANCE_IP=$2
-COMMAND=$3
-if [ -n "$PRIVATE_INSTANCE_IP" ]; then
-if [ -z "$COMMAND"]; then
-  ssh -i "$KEY_PATH" "ProxyJump ubuntu@"$PUBLIC_INSTANCE_IP"" ubuntu@"$PRIVATE_INSTANCE_IP"
-  else
-    ssh -i "$KEY_PATH" "ProxyJump ubuntu@"$PUBLIC_INSTANCE_IP"" ubuntu@"$PRIVATE_INSTANCE_IP" "$COMMAND"
-    else
-      ssh -i "$KEY_PATH" ubuntu@$PUBLIC_INSTANCE_IP
+if [ -z "$2" ]; then
+  echo "Please provide target IP address"
+  exit 5
 fi
+
+# הגדרת משתנים לפרמטרים
+BASTION_IP=$1
+TARGET_IP=$2
+
+# הסרת הפרמטרים הראשונים (bastion IP ו-target IP)
+shift 2
+
+# אם קיימים פרמטרים נוספים, הם יהוו את הפקודה שצריך להריץ על השרת הפרטי
+if [ "$#" -gt 0 ]; then
+  CMD="$@"
+  ssh -i "$KEY_PATH" -o ProxyJump=ubuntu@"$BASTION_IP" ubuntu@"$TARGET_IP" "$CMD"
 else
-  ssh -i "$KEY_PATH" ubuntu@"$PUBLIC_INSTANCE_IP"
+  ssh -i "$KEY_PATH" -o ProxyJump=ubuntu@"$BASTION_IP" ubuntu@"$TARGET_IP"
 fi
