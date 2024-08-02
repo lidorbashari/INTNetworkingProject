@@ -1,6 +1,6 @@
 #!/bin/bash
 
-
+KEY_PATH = /home/lidorbashari/aws_key/lidorbashari.pem
 if [ -z "$KEY_PATH" ]; then
   echo "KEY_PATH env var is expected"
   exit 5
