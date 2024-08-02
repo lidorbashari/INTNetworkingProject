@@ -23,7 +23,8 @@ if [ -n "$PRIVATE_INSTANCE_IP" ]; then
 if [ -z "$COMMAND"]; then
   ssh -i "$KEY_PATH" "ProxyJump ubuntu@"$PUBLIC_INSTANCE_IP"" ubuntu@"$PRIVATE_INSTANCE_IP"
   else
-    ssh -i "$KEY_PATH" "ProxyJump ubuntu@"$PUBLIC_INSTANCE_IP"" ubuntu@"$PRIVATE_INSTANCE_IP" "$COMMAND"
+    ssh -i "$KEY_PATH" "ProxyJump ubuntu@"$PUBLIC_INSTANCE_IP"" ubuntu@"$PRIVATE_INSTANCE_IP"
+    $COMMAND
     else
       ssh -i "$KEY_PATH" ubuntu@$PUBLIC_INSTANCE_IP
 fi
