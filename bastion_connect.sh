@@ -1,6 +1,6 @@
 #!/bin/bash
 
-BASTION_IP=$1
+PUBLIC_IP=$1
 PRIVATE_IP=$2
 COMMAND=$3
 
@@ -11,8 +11,8 @@ if [ $# -eq 0 ]; then
   exit 5
 fi
 
-if [ $# -eq 1 ]; then 
-ssh -i "$KEY_PATH" ubuntu@"$PUBLIC_INSTANCE_IP"
+if [ "$#" -eq 1 ]; then
+ssh -i "${KEY_PATH}" ubuntu@"$PUBLIC_IP"
 fi
 
 if [ -z "${KEY_PATH}" ]; then
@@ -21,9 +21,8 @@ if [ -z "${KEY_PATH}" ]; then
 fi
 
 if [[ "$#" -eq 2 || "$#" -eq 3 ]]; then
-    ssh -t -i "${KEY_PATH}" ubuntu@"${BASTION_IP}" "ssh -i ${KEY_PATH_2} ubuntu@${PRIVATE_IP} ${COMMAND}"
+    ssh -t -i "${KEY_PATH}" ubuntu@"${PUBLIC_IP}" "ssh -i ${KEY_PATH_2} ubuntu@${PRIVATE_IP} ${COMMAND}"
 fi
-
 
 
 

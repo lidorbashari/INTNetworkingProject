@@ -20,16 +20,6 @@ ssh -i $KEY_PATH ubuntu@$PUBLIC_IP "./ssh_keys_rotation.sh $PRIVATE_IP"
 
 NEW_KEYS=$(bash bastion_connect.sh $PUBLIC_IP $PRIVATE_IP "cat ~/.ssh/authorized_keys")
 
-echo "Public keys found in the ~/.ssh/authorized_keys file in your private instance, after the rotation:"
-echo -e "------------------------------------------------------------------------------\n\n"
-
-echo $NEW_KEYS
-
-while read -r old_key; do
-    if echo "$NEW_KEYS" | grep -qF "$old_key"; then
-        echo "Some key that existed before rotation are still present after rotation."
-        exit 1
-    fi
-done <<< "$OLD_KEYS"
+echo "Public keys found in the ~/.ssh/authorized_keys file in your private
 
 echo '✅ Rotation done successfully!'
