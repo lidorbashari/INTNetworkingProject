@@ -22,6 +22,7 @@ fi
 
 if [[ "$#" -eq 2 || "$#" -eq 3 ]]; then
     ssh -t -i "${KEY_PATH}" ubuntu@"${PUBLIC_IP}" "ssh -i ${KEY_PATH_2} ubuntu@${PRIVATE_IP} ${COMMAND}"
+
 fi
 
 
