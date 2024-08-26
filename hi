@@ -9,6 +9,8 @@ client_hello=$( curl -s -X POST http://{$ip_adress}:8080 \
       "TLS_CHACHA20_POLY1305_SHA256"
    ],
    "message": "Client Hello"
-}'
+}')
 
 echo ${client_hello}
+
+echo $?
