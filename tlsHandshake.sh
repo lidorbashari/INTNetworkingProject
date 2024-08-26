@@ -43,6 +43,12 @@ echo $SERVER_CERT > cert.pem
 echo "Verifying Server Certificate..."
 wget -q https://exit-zero-academy.github.io/DevOpsTheHardWayAssets/networking_project/cert-ca-aws.pem -O cert-ca-aws.pem
 
+# בדיקת אם קובץ התעודה נוצר בהצלחה
+if [ ! -f "cert.pem" ]; then
+  echo "Could not read certificate file from cert.pem"
+  exit 4
+fi
+
 openssl verify -CAfile cert-ca-aws.pem cert.pem
 
 if [ $? -ne 0 ]; then
