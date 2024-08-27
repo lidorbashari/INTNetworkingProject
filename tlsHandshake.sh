@@ -45,3 +45,42 @@ else
 	echo "Server Certificate is invalid."
 	exit 5
 fi
+
+# Generate a master key.
+openssl rand -base64 32 > master_key
+
+#encrypt the server certificate with the master key.
+ENCRYPTED_MASTER_KEY=$(openssl smime -encrypt -aes-256-cbc -in master_key  -outform DER cert.pem | base64 -w 0)
+response_keyexchange=$(curl -s -X POST http://"${PUBLIC_IP}":8080/keyexchange \
+                -H "Content-Type: application/json" \
+                -d '{
+                        "sessionID":"'"${sid}"'",
+                        "masterKey":"'"${ENCRYPTED_MASTER_KEY}"'",
+                        "sampleMessage": "Hi server, please encrypt me and send to client!"
+                }')
+
+
+# Extract the encrypted sample message
+SAMPLE_MESSAGE=$(echo "${response_keyexchange}" | jq -r '.encryptedSampleMessage')
+
+# Decode and save the encrypted message
+echo "${SAMPLE_MESSAGE}" | base64 -d > encrypted_message.bin
+
+# Decrypt the message
+DECRYPTED_MESSAGE=$(openssl enc -d -aes-256-cbc -pbkdf2 -kfile master_key -in encrypted_message.bin)
+
+sampleMessage="Hi server, please encrypt me and send to client!"
+#check if decryption succeeded
+if [[ "$DECRYPTED_MESSAGE" != "$sampleMessage" ]]; then
+	echo "Server symmetric encryption using the exchanged master-key has failed."
+	exit 6
+else
+	echo "Client-Server TLS handshake has been completed successfully"
+	exit 0
+fi
+
+# Print the decrypted message
+echo "Decrypted message: ${DECRYPTED_MESSAGE}"
+
+# Clean up
+rm -f encrypted_message.bin master_key cert-ca-aws.pem
