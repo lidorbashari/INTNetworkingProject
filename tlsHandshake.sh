@@ -33,9 +33,8 @@ echo "Saved sessionID and serverCert"
 
 echo "Downloading the CA certificate file"
 wget https://exit-zero-academy.github.io/DevOpsTheHardWayAssets/networking_project/cert-ca-aws.pem
-
 if [ ! -f cert-ca-aws.pem ]; then
-  echo " can't download the CA certificate file"
+  echo " can't downloading the CA certificate file"
   exit 1
 fi
 
