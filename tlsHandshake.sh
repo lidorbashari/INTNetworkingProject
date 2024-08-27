@@ -33,15 +33,17 @@ echo "Saved sessionID and serverCert"
 
 echo "Downloading the CA certificate file"
 wget https://exit-zero-academy.github.io/DevOpsTheHardWayAssets/networking_project/cert-ca-aws.pem
-if [ ! -f {$cert-ca-aws.pem} ]; then
-  echo " can't downloading the CA certificate file"
+
+if [ -f ${cert-ca-aws.pem} ]; then
+  openssl verify -CAfile cert-ca-aws.pem cert.pem > /dev/null 2>&1
+  if [[ $? -eq 0 ]]; then
+	echo "Cert.pem: OK"
+   else
+	 echo "Server Certificate is invalid."
+	 exit 5
+  fi
+else
+  echo " can't download the CA certificate file"
   exit 1
 fi
 
-openssl verify -CAfile cert-ca-aws.pem cert.pem > /dev/null 2>&1
-if [[ $? -eq 0 ]]; then
-	echo "Cert.pem: OK"
-else
-	echo "Server Certificate is invalid."
-	exit 5
-fi
