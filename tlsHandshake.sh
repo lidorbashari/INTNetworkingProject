@@ -44,22 +44,25 @@ if [[ $? -eq 0 ]]; then
 	echo "Cert.pem: OK"
 else
 	echo "Server Certificate is invalid."
-	exit 5
+	exit 6
 fi
 
 # Generate a master key.
 openssl rand -base64 32 > master_key
-
+if [ ! -f ${master_key} ]; then
+  echo "faild to generate master key"
+  exit 1
+fi
 #encrypt the server certificate with the master key.
-ENCRYPTED_MASTER_KEY=$(openssl smime -encrypt -aes-256-cbc -in master_key  -outform DER cert.pem | base64 -w 0)
-response_keyexchange=$(curl -s -X POST http://"${PUBLIC_IP}":8080/keyexchange \
-                -H "Content-Type: application/json" \
-                -d '{
-                        "sessionID":"'"${sid}"'",
-                        "masterKey":"'"${ENCRYPTED_MASTER_KEY}"'",
-                        "sampleMessage": "Hi server, please encrypt me and send to client!"
-                }')
-
+openssl smime -encrypt -aes-256-cbc -in master_key -outform DER cert-ca-aws.pem | base64 -w 0 > enqrypted_master_key
+curl -s -X POST http://${ip_adress}:8080/keyexchange \
+-H POST /keyexchange
+-H "Content-Type: application/json" \
+-d '{
+    "sessionID": SESSION_ID,
+    "masterKey": MASTER_KEY,
+    "sampleMessage": "Hi server, please encrypt me and send to client!"
+}'
 
 # Extract the encrypted sample message
 SAMPLE_MESSAGE=$(echo "${response_keyexchange}" | jq -r '.encryptedSampleMessage')
