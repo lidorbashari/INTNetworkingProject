@@ -38,9 +38,9 @@ if [ ! -f ${cert-ca-aws.pem} ]; then
   exit 1
 fi
 
-openssl verify -CAfile cert-ca-aws.pem cert.pem > /dev/null
-if [ $? -eq 0 ]; then
-	echo 'Cert.pem: OK'
+openssl verify -CAfile cert-ca-aws.pem cert.pem > /dev/null 2>&1
+if [[ $? -eq 0 ]]; then
+	echo "Cert.pem: OK"
 else
 	echo "Server Certificate is invalid."
 	exit 5
