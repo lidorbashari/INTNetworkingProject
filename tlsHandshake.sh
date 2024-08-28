@@ -44,7 +44,7 @@ if [[ $? -eq 0 ]]; then
 	echo "Cert.pem: OK"
 else
 	echo "Server Certificate is invalid."
-	exit 6
+	exit 5
 fi
 
 # Generate a master key.
