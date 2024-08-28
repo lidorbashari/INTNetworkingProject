@@ -18,17 +18,17 @@ fi
 
 echo "client hello request send succsusfuly"
 
-sessionID=$(echo ${client_hello} || jq -r '.sessionID')
-serverCert=$(echo ${client_hello} || jq -r '.serverCert')
+sessionID=$(echo ${client_hello} | jq -r '.sessionID')
+serverCert=$(echo ${client_hello} | jq -r '.serverCert')
 
-if [ -z ${sessionID} ] && [ -Z ${serverCert} ]; then
+if [ -z ${sessionID} ] && [ -z ${serverCert} ]; then
   echo "filed to parse information from sessionID or serverCert"
   exit 1
 fi
 
 echo "sessionID is: $sessionID"
 echo "serverCert is: $serverCert"
-$serverCert>servercert.pem
+echo "$serverCert" > servercert.pem
 echo "Saved sessionID and serverCert"
 
 echo "Downloading the CA certificate file"
@@ -39,7 +39,7 @@ if [ ! -f cert-ca-aws.pem ]; then
   exit 1
 fi
 
-openssl verify -CAfile cert-ca-aws.pem cert.pem > /dev/null 2>&1
+openssl verify -CAfile cert-ca-aws.pem servercert.pem > /dev/null 2>&1
 if [[ $? -eq 0 ]]; then
 	echo "Cert.pem: OK"
 else
@@ -51,7 +51,7 @@ fi
 openssl rand -base64 32 > master_key
 if [ ! -f ${master_key} ]; then
   echo "faild to generate master key"
-  exit 6
+  exit 1
 fi
 #encrypt the server certificate with the master key.
 openssl smime -encrypt -aes-256-cbc -in master_key -outform DER cert-ca-aws.pem | base64 -w 0 > enqrypted_master_key
