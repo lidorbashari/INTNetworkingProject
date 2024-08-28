@@ -2,7 +2,7 @@
 
 ip_address=$1
 
-# Step 1: Client Hello
+#Client Hello
 client_hello=$(curl -s -X POST http://${ip_address}:8080/clienthello \
 -H "Content-Type: application/json" \
 -d '{
@@ -13,7 +13,7 @@ client_hello=$(curl -s -X POST http://${ip_address}:8080/clienthello \
    ],
    "message": "Client Hello"
 }')
-
+#Check client hello request
 if [ $? -ne 0 ] ; then
   echo "Client Hello request failed"
   exit 1
@@ -21,9 +21,11 @@ fi
 
 echo "Client Hello request sent successfully"
 
+#Extracting variables
 sessionID=$(echo ${client_hello} | jq -r '.sessionID')
 serverCert=$(echo ${client_hello} | jq -r '.serverCert')
 
+#Check variables
 if [ -z ${sessionID} ] || [ -z ${serverCert} ]; then
   echo "Failed to parse sessionID or serverCert"
   exit 1
@@ -34,7 +36,7 @@ echo "serverCert is: $serverCert"
 echo "$serverCert" > servercert.pem
 echo "Saved sessionID and serverCert"
 
-# Step 2: Download CA certificate
+#Download CA certificate
 echo "Downloading the CA certificate file"
 rm -f cert-ca-aws.pem
 wget https://exit-zero-academy.github.io/DevOpsTheHardWayAssets/networking_project/cert-ca-aws.pem
@@ -43,7 +45,7 @@ if [ ! -f cert-ca-aws.pem ]; then
   exit 1
 fi
 
-# Step 3: Verify Server Certificate
+#Verify Server Certificate
 openssl verify -CAfile cert-ca-aws.pem servercert.pem > /dev/null 2>&1
 if [[ $? -eq 0 ]]; then
     echo "Server Certificate: OK"
@@ -52,14 +54,14 @@ else
     exit 5
 fi
 
-# Step 4: Generate Master Key
+#Generate Master Key
 openssl rand -base64 32 > master_key
 if [ ! -f master_key ]; then
   echo "Failed to generate master key"
   exit 1
 fi
 
-# Step 5: Encrypt the Master Key using Server's Public Key
+#Encrypt the Master Key using Server's Public Key
 openssl smime -encrypt -aes-256-cbc -in master_key -outform DER -out encrypted_master_key.bin servercert.pem
 if [ $? -ne 0 ]; then
   echo "Failed to encrypt master key"
@@ -69,7 +71,7 @@ fi
 # Base64 encode the encrypted master key
 encrypted_master_key=$(base64 -w 0 < encrypted_master_key.bin)
 
-# Step 6: Send Encrypted Master Key to Server
+#Send Encrypted Master Key to Server
 response_keyexchange=$(curl -s -X POST http://${ip_address}:8080/keyexchange \
 -H "Content-Type: application/json" \
 -d "{
@@ -83,7 +85,7 @@ if [ $? -ne 0 ] ; then
   exit 1
 fi
 
-# Step 7: Extract and Decrypt Encrypted Sample Message
+#Extract and Decrypt Encrypted Sample Message
 SAMPLE_MESSAGE=$(echo "${response_keyexchange}" | jq -r '.encryptedSampleMessage')
 
 if [ -z "$SAMPLE_MESSAGE" ]; then
