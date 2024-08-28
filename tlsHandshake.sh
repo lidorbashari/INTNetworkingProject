@@ -1,6 +1,9 @@
 #!/bin/bash
-ip_adress=$1
-client_hello=$(curl -s -X POST http://${ip_adress}:8080/clienthello \
+
+ip_address=$1
+
+# Step 1: Client Hello
+client_hello=$(curl -s -X POST http://${ip_address}:8080/clienthello \
 -H "Content-Type: application/json" \
 -d '{
    "version": "1.3",
@@ -12,17 +15,17 @@ client_hello=$(curl -s -X POST http://${ip_adress}:8080/clienthello \
 }')
 
 if [ $? -ne 0 ] ; then
-  echo "client hello request are failed"
+  echo "Client Hello request failed"
   exit 1
 fi
 
-echo "client hello request send succsusfuly"
+echo "Client Hello request sent successfully"
 
 sessionID=$(echo ${client_hello} | jq -r '.sessionID')
 serverCert=$(echo ${client_hello} | jq -r '.serverCert')
 
-if [ -z ${sessionID} ] && [ -z ${serverCert} ]; then
-  echo "filed to parse information from sessionID or serverCert"
+if [ -z ${sessionID} ] || [ -z ${serverCert} ]; then
+  echo "Failed to parse sessionID or serverCert"
   exit 1
 fi
 
@@ -31,60 +34,79 @@ echo "serverCert is: $serverCert"
 echo "$serverCert" > servercert.pem
 echo "Saved sessionID and serverCert"
 
+# Step 2: Download CA certificate
 echo "Downloading the CA certificate file"
-rm cert-ca-aws.pem
+rm -f cert-ca-aws.pem
 wget https://exit-zero-academy.github.io/DevOpsTheHardWayAssets/networking_project/cert-ca-aws.pem
 if [ ! -f cert-ca-aws.pem ]; then
-  echo " can't downloading the CA certificate file"
+  echo "Failed to download the CA certificate file"
   exit 1
 fi
 
+# Step 3: Verify Server Certificate
 openssl verify -CAfile cert-ca-aws.pem servercert.pem > /dev/null 2>&1
 if [[ $? -eq 0 ]]; then
-	echo "Cert.pem: OK"
+    echo "Server Certificate: OK"
 else
-	echo "Server Certificate is invalid."
-	exit 5
+    echo "Server Certificate is invalid."
+    exit 5
 fi
 
-# Generate a master key.
+# Step 4: Generate Master Key
 openssl rand -base64 32 > master_key
-if [ ! -f ${master_key} ]; then
-  echo "faild to generate master key"
+if [ ! -f master_key ]; then
+  echo "Failed to generate master key"
   exit 1
 fi
-#encrypt the server certificate with the master key.
-openssl smime -encrypt -aes-256-cbc -in master_key -outform DER cert-ca-aws.pem | base64 -w 0 > enqrypted_master_key
-curl -s -X POST http://${ip_adress}:8080/keyexchange \
--H POST /keyexchange
--H "Content-Type: application/json" \
--d '{
-    "sessionID": SESSION_ID,
-    "masterKey": MASTER_KEY,
-    "sampleMessage": "Hi server, please encrypt me and send to client!"
-}'
 
-# Extract the encrypted sample message
+# Step 5: Encrypt the Master Key using Server's Public Key
+openssl smime -encrypt -aes-256-cbc -in master_key -outform DER -out encrypted_master_key.bin servercert.pem
+if [ $? -ne 0 ]; then
+  echo "Failed to encrypt master key"
+  exit 1
+fi
+
+# Base64 encode the encrypted master key
+encrypted_master_key=$(base64 -w 0 < encrypted_master_key.bin)
+
+# Step 6: Send Encrypted Master Key to Server
+response_keyexchange=$(curl -s -X POST http://${ip_address}:8080/keyexchange \
+-H "Content-Type: application/json" \
+-d "{
+    \"sessionID\": \"${sessionID}\",
+    \"masterKey\": \"${encrypted_master_key}\",
+    \"sampleMessage\": \"Hi server, please encrypt me and send to client!\"
+}")
+
+if [ $? -ne 0 ] ; then
+  echo "Key exchange request failed"
+  exit 1
+fi
+
+# Step 7: Extract and Decrypt Encrypted Sample Message
 SAMPLE_MESSAGE=$(echo "${response_keyexchange}" | jq -r '.encryptedSampleMessage')
 
-# Decode and save the encrypted message
+if [ -z "$SAMPLE_MESSAGE" ]; then
+    echo "Failed to retrieve encrypted sample message"
+    exit 1
+fi
+
+# Decode the encrypted message
 echo "${SAMPLE_MESSAGE}" | base64 -d > encrypted_message.bin
 
-# Decrypt the message
+# Decrypt the message using the master key
 DECRYPTED_MESSAGE=$(openssl enc -d -aes-256-cbc -pbkdf2 -kfile master_key -in encrypted_message.bin)
 
 sampleMessage="Hi server, please encrypt me and send to client!"
-#check if decryption succeeded
+
+# Step 8: Verify Decrypted Message
 if [[ "$DECRYPTED_MESSAGE" != "$sampleMessage" ]]; then
-	echo "Server symmetric encryption using the exchanged master-key has failed."
-	exit 6
+    echo "Server symmetric encryption using the exchanged master-key has failed."
+    exit 6
 else
-	echo "Client-Server TLS handshake has been completed successfully"
-	exit 0
+    echo "Client-Server TLS handshake has been completed successfully"
+    exit 0
 fi
 
-# Print the decrypted message
-echo "Decrypted message: ${DECRYPTED_MESSAGE}"
-
 # Clean up
-rm -f encrypted_message.bin master_key cert-ca-aws.pem
+rm -f encrypted_message.bin master_key cert-ca-aws.pem servercert.pem encrypted_master_key.bin
