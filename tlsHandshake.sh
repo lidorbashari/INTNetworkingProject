@@ -51,7 +51,7 @@ fi
 openssl rand -base64 32 > master_key
 if [ ! -f ${master_key} ]; then
   echo "faild to generate master key"
-  exit 1
+  exit 6
 fi
 #encrypt the server certificate with the master key.
 openssl smime -encrypt -aes-256-cbc -in master_key -outform DER cert-ca-aws.pem | base64 -w 0 > enqrypted_master_key
