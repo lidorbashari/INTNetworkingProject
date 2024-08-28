@@ -4,6 +4,7 @@ PUBLIC_IP=$1
 PRIVATE_IP=$2
 COMMAND=$3
 
+KEY_PATH=/home/lidorbashari/aws_keys/bashari.pem
 KEY_PATH_2=/home/ubuntu/.ssh/id_rsa
 
 if [ $# -eq 0 ]; then
