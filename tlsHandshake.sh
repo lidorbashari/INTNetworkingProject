@@ -14,25 +14,21 @@ client_hello=$(curl -s -X POST http://${ip_address}:8080/clienthello \
    "message": "Client Hello"
 }')
 
-# Check if Client Hello failed or succeeded
-if [[ $? -ne 0 ]] ; then
+if [ $? -ne 0 ] ; then
   echo "Client Hello request failed"
   exit 1
 fi
 
 echo "Client Hello request sent successfully"
 
-# Data extraction
-sessionID=$(echo "${client_hello}" | jq -r '.sessionID')
-serverCert=$(echo "${client_hello}" | jq -r '.serverCert')
+sessionID=$(echo ${client_hello} | jq -r '.sessionID')
+serverCert=$(echo ${client_hello} | jq -r '.serverCert')
 
-# Check parse sessionID and serverCert
-if [[ -z "${sessionID}" ]] || [[ -z "${serverCert}" ]]; then
+if [ -z ${sessionID} ] || [ -z ${serverCert} ]; then
   echo "Failed to parse sessionID or serverCert"
   exit 1
 fi
 
-# Save sessionID and serverCert
 echo "sessionID is: $sessionID"
 echo "serverCert is: $serverCert"
 echo "$serverCert" > servercert.pem
@@ -42,7 +38,7 @@ echo "Saved sessionID and serverCert"
 echo "Downloading the CA certificate file"
 rm -f cert-ca-aws.pem
 wget https://exit-zero-academy.github.io/DevOpsTheHardWayAssets/networking_project/cert-ca-aws.pem
-if [[ ! -f cert-ca-aws.pem ]]; then
+if [ ! -f cert-ca-aws.pem ]; then
   echo "Failed to download the CA certificate file"
   exit 1
 fi
@@ -58,14 +54,14 @@ fi
 
 # Generate Master Key
 openssl rand -base64 32 > master_key
-if [[ ! -f master_key ]]; then
+if [ ! -f master_key ]; then
   echo "Failed to generate master key"
   exit 1
 fi
 
 # Encrypt the Master Key using Server's Public Key
 openssl smime -encrypt -aes-256-cbc -in master_key -outform DER -out encrypted_master_key.bin servercert.pem
-if [[ $? -ne 0 ]]; then
+if [ $? -ne 0 ]; then
   echo "Failed to encrypt master key"
   exit 1
 fi
@@ -82,7 +78,7 @@ response_keyexchange=$(curl -s -X POST http://${ip_address}:8080/keyexchange \
     \"sampleMessage\": \"Hi server, please encrypt me and send to client!\"
 }")
 
-if [[ $? -ne 0 ]] ; then
+if [ $? -ne 0 ] ; then
   echo "Key exchange request failed"
   exit 1
 fi
@@ -90,7 +86,7 @@ fi
 # Extract and Decrypt Encrypted Sample Message
 SAMPLE_MESSAGE=$(echo "${response_keyexchange}" | jq -r '.encryptedSampleMessage')
 
-if [[ -z "$SAMPLE_MESSAGE" ]]; then
+if [ -z "$SAMPLE_MESSAGE" ]; then
     echo "Failed to retrieve encrypted sample message"
     exit 1
 fi
